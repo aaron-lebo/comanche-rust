@@ -1,0 +1,8 @@
+[package]
+name = "comanche"
+version = "0.1.0"
+authors = ["Aaron Lebo <aaron.matthew.lebo@gmail.com>"]
+
+[dependencies]
+gl = "*"
+glfw = "*"
