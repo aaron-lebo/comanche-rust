@@ -33,10 +33,10 @@ unsafe fn check_status(item: GLuint, kind: &str) {
 
 unsafe fn compile_shader(shader: GLenum, src: &str) -> GLuint {
     let shader = gl::CreateShader(shader);
-    let string = CString::new(src.as_bytes()).unwrap();
-    gl::ShaderSource(shader, 1, &string.as_ptr(), ptr::null());
+    let c_str = CString::new(src.as_bytes()).unwrap();
+    gl::ShaderSource(shader, 1, &c_str.as_ptr(), ptr::null());
     gl::CompileShader(shader);
-    check_status(shader, if shader == gl::VERTEX_SHADER {"vertex shader"} else {"fragment shader"});
+    check_status(shader, if shader == gl::VERTEX_SHADER { "vertex shader" } else { "fragment shader" });
     shader
 }
 
@@ -70,14 +70,20 @@ fn setup_gl() -> (GLuint, GLuint) {
         gl::DeleteShader(vert);
         gl::DeleteShader(frag);
 
-        const VERTS: [f32; 12] = [
-             0.5,  0.5, 0.0,
-             0.5, -0.5, 0.0,
-            -0.5, -0.5, 0.0,
-            -0.5,  0.5, 0.0];
-        const INDICES: [i32; 6] = [
-            0, 1, 3,
-            1, 2, 3];
+        const VERTS: [f32; 24] = [
+            -0.5,  0.5,  0.5,
+            -0.5, -0.5,  0.5,
+             0.5, -0.5,  0.5,
+             0.5,  0.5,  0.5,
+            -0.5,  0.5, -0.5,
+            -0.5, -0.5, -0.5,
+             0.5, -0.5, -0.5,
+             0.5,  0.5, -0.5,
+        ];
+        const INDICES: [i32; 12] = [
+            0, 1, 3, 1, 2, 3, // +z
+            4, 5, 7, 5, 6, 7, // -z
+        ];
         let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
         gl::GenVertexArrays(1, &mut vao);
         gl::GenBuffers(1, &mut vbo);
@@ -127,9 +133,9 @@ pub fn main() {
         use self::glfw::{Key, Action};
         for (_, evt) in glfw::flush_messages(&evts) {
             match evt {
-                glfw::WindowEvent::FramebufferSize(w, h) => unsafe { gl::Viewport(0, 0, w, h) }
+                glfw::WindowEvent::FramebufferSize(w, h) => unsafe { gl::Viewport(0, 0, w, h) },
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => win.set_should_close(true),
-                _ => ()
+                _ => (),
             }
         }
 
