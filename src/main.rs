@@ -80,9 +80,13 @@ fn setup_gl() -> (GLuint, GLuint) {
              0.5, -0.5, -0.5,
              0.5,  0.5, -0.5,
         ];
-        const INDICES: [i32; 12] = [
-            0, 1, 3, 1, 2, 3, // +z
-            4, 5, 7, 5, 6, 7, // -z
+        const INDICES: [i32; 36] = [
+            0, 1, 2, 2, 3, 0, // +z
+            4, 5, 6, 6, 7, 4, // -z
+            4, 0, 3, 3, 7, 4, // +y
+            5, 1, 2, 2, 6, 5, // -y
+            3, 2, 6, 6, 7, 3, // +x
+            0, 1, 5, 5, 4, 0, // -x
         ];
         let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
         gl::GenVertexArrays(1, &mut vao);
