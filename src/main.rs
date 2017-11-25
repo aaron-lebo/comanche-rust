@@ -16,6 +16,25 @@ const TITLE: &str = "comanche";
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
 
+const VERTS: [f32; 24] = [
+    -0.5,  0.5,  0.5,
+    -0.5, -0.5,  0.5,
+    0.5, -0.5,  0.5,
+    0.5,  0.5,  0.5,
+    -0.5,  0.5, -0.5,
+    -0.5, -0.5, -0.5,
+    0.5, -0.5, -0.5,
+    0.5,  0.5, -0.5,
+];
+const INDICES: [i32; 36] = [
+    0, 1, 2, 2, 3, 0, // +z
+    4, 5, 6, 6, 7, 4, // -z
+    4, 0, 3, 3, 7, 4, // +y
+    5, 1, 2, 2, 6, 5, // -y
+    3, 2, 6, 6, 7, 3, // +x
+    0, 1, 5, 5, 4, 0, // -x
+];
+
 unsafe fn check_status(item: GLuint, kind: &str) {
     let mut ok = gl::FALSE as GLint;
     let get_info = if kind == "program" {
@@ -50,22 +69,9 @@ fn setup_gl() -> (GLuint, GLuint) {
         //gl::Enable(gl::DEPTH_TEST);
         gl::LogicOp(gl::INVERT);
 
-        const VERT: &str = r#"
-            #version 330 core
-            layout (location = 0) in vec3 pos;
-            uniform mat4 mvp;
-            void main() {
-                gl_Position = mvp * vec4(pos, 1.0);
-            }"#;
-        const FRAG: &str = r#"
-            #version 330 core
-            out vec4 color;
-            void main() {
-                color = vec4(0.0f, 0.0f, 1.0f, 1.0f);
-            }"#;
         let pro = gl::CreateProgram();
-        let vert = compile_shader(gl::VERTEX_SHADER, VERT);
-        let frag = compile_shader(gl::FRAGMENT_SHADER, FRAG);
+        let vert = compile_shader(gl::VERTEX_SHADER, include_str!("block_vert.glsl"));
+        let frag = compile_shader(gl::FRAGMENT_SHADER, include_str!("block_frag.glsl"));
         gl::AttachShader(pro, vert);
         gl::AttachShader(pro, frag);
         gl::LinkProgram(pro);
@@ -73,24 +79,6 @@ fn setup_gl() -> (GLuint, GLuint) {
         gl::DeleteShader(vert);
         gl::DeleteShader(frag);
 
-        const VERTS: [f32; 24] = [
-            -0.5,  0.5,  0.5,
-            -0.5, -0.5,  0.5,
-             0.5, -0.5,  0.5,
-             0.5,  0.5,  0.5,
-            -0.5,  0.5, -0.5,
-            -0.5, -0.5, -0.5,
-             0.5, -0.5, -0.5,
-             0.5,  0.5, -0.5,
-        ];
-        const INDICES: [i32; 36] = [
-            0, 1, 2, 2, 3, 0, // +z
-            4, 5, 6, 6, 7, 4, // -z
-            4, 0, 3, 3, 7, 4, // +y
-            5, 1, 2, 2, 6, 5, // -y
-            3, 2, 6, 6, 7, 3, // +x
-            0, 1, 5, 5, 4, 0, // -x
-        ];
         let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
         gl::GenVertexArrays(1, &mut vao);
         gl::GenBuffers(1, &mut vbo);
@@ -126,7 +114,7 @@ fn render(program: GLuint, vao: GLuint) {
         gl::UniformMatrix4fv(mvp_loc, 1, gl::FALSE, &mvp[0][0]);
 
         gl::BindVertexArray(vao);
-        gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, ptr::null());
+        gl::DrawElements(gl::TRIANGLES, INDICES.len() as i32, gl::UNSIGNED_INT, ptr::null());
         gl::BindVertexArray(0);
     }
 }
