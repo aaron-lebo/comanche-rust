@@ -1,6 +1,8 @@
+extern crate cgmath;
 extern crate gl;
 extern crate glfw;
 
+use cgmath::{Matrix4, Point3, SquareMatrix, vec3};
 use gl::types::*;
 use self::glfw::Context;
 use std::ffi::CString;
@@ -51,8 +53,9 @@ fn setup_gl() -> (GLuint, GLuint) {
         const VERT: &str = r#"
             #version 330 core
             layout (location = 0) in vec3 pos;
+            uniform mat4 mvp;
             void main() {
-                gl_Position = vec4(pos, 1.0);
+                gl_Position = mvp * vec4(pos, 1.0);
             }"#;
         const FRAG: &str = r#"
             #version 330 core
@@ -113,10 +116,17 @@ fn setup_gl() -> (GLuint, GLuint) {
 fn render(program: GLuint, vao: GLuint) {
     unsafe {
         gl::Clear(gl::COLOR_BUFFER_BIT);
+
         gl::UseProgram(program);
+        let mvp_loc = gl::GetUniformLocation(program, CString::new("mvp").unwrap().as_ptr());
+        let projection = cgmath::perspective(cgmath::Deg(45.0), 4.0 / 3.0, 0.1, 100.0);
+        let view = Matrix4::look_at(Point3::new(4.0, 3.0, -3.0), Point3::new(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0));
+        let model = Matrix4::identity();
+        let mvp = projection * view * model;
+        gl::UniformMatrix4fv(mvp_loc, 1, gl::FALSE, &mvp[0][0]);
 
         gl::BindVertexArray(vao);
-        gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+        gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, ptr::null());
         gl::BindVertexArray(0);
     }
 }
