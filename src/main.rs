@@ -89,25 +89,27 @@ fn setup_gl() -> (ShaderProgram, GLuint) {
                 mvp: gl::GetUniformLocation(p, CString::new("mvp").unwrap().as_ptr()),
             }
         };
-
-        let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
-        gl::GenVertexArrays(1, &mut vao);
-        gl::GenBuffers(1, &mut vbo);
-        gl::GenBuffers(1, &mut ebo);
-        gl::BindVertexArray(vao);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(gl::ARRAY_BUFFER,
-                       (VERTS.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
-                       &VERTS[0] as *const f32 as *const c_void,
-                       gl::STATIC_DRAW);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
-                       (INDICES.len() * mem::size_of::<GLint>()) as GLsizeiptr,
-                       &INDICES[0] as *const i32 as *const c_void,
-                       gl::STATIC_DRAW);
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
-        gl::EnableVertexAttribArray(0);
-        gl::BindVertexArray(0);
+        let vao = {
+            let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
+            gl::GenVertexArrays(1, &mut vao);
+            gl::GenBuffers(1, &mut vbo);
+            gl::GenBuffers(1, &mut ebo);
+            gl::BindVertexArray(vao);
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+            gl::BufferData(gl::ARRAY_BUFFER,
+                           (VERTS.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
+                           &VERTS[0] as *const f32 as *const c_void,
+                           gl::STATIC_DRAW);
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
+                           (INDICES.len() * mem::size_of::<GLint>()) as GLsizeiptr,
+                           &INDICES[0] as *const i32 as *const c_void,
+                           gl::STATIC_DRAW);
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
+            gl::EnableVertexAttribArray(0);
+            gl::BindVertexArray(0);
+            vao
+        };
         (program, vao)
     }
 }
