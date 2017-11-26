@@ -40,29 +40,32 @@ struct ShaderProgram {
     mvp: GLint,
 }
 
-unsafe fn check_status(item: GLuint, kind: &str) {
+unsafe fn check_status(obj: GLuint, param: GLenum) {
     let mut ok = gl::FALSE as GLint;
-    let get_info = if kind == "program" {
-        gl::GetProgramiv(item, gl::LINK_STATUS, &mut ok);
-        gl::GetProgramInfoLog
-    } else {
-        gl::GetShaderiv(item, gl::COMPILE_STATUS, &mut ok);
-        gl::GetShaderInfoLog
+    let get_info = match param {
+        gl::LINK_STATUS => {
+            gl::GetProgramiv(obj, param, &mut ok);
+            gl::GetProgramInfoLog
+        },
+        _ => {
+            gl::GetShaderiv(obj, gl::COMPILE_STATUS, &mut ok);
+            gl::GetShaderInfoLog
+        },
     };
     if ok != gl::TRUE as GLint {
         let mut info = Vec::with_capacity(512);
         info.set_len(511);
-        get_info(item, 512, ptr::null_mut(), info.as_mut_ptr() as *mut GLchar);
-        println!("ERROR: {} compilation failed\n{}", kind, str::from_utf8(&info).unwrap());
+        get_info(obj, 512, ptr::null_mut(), info.as_mut_ptr() as *mut GLchar);
+        println!("ERROR::{}\n{}", param, str::from_utf8(&info).unwrap());
     }
 }
 
-unsafe fn compile_shader(shader: GLenum, src: &str) -> GLuint {
-    let shader = gl::CreateShader(shader);
+unsafe fn compile_shader(kind: GLenum, src: &str) -> GLuint {
+    let shader = gl::CreateShader(kind);
     let c_str = CString::new(src.as_bytes()).unwrap();
     gl::ShaderSource(shader, 1, &c_str.as_ptr(), ptr::null());
     gl::CompileShader(shader);
-    check_status(shader, if shader == gl::VERTEX_SHADER { "vertex shader" } else { "fragment shader" });
+    check_status(shader, kind);
     shader
 }
 
@@ -81,7 +84,7 @@ fn setup_gl() -> (ShaderProgram, GLuint) {
             gl::AttachShader(p, vs);
             gl::AttachShader(p, fs);
             gl::LinkProgram(p);
-            check_status(p, "program");
+            check_status(p, gl::LINK_STATUS);
             gl::DeleteShader(vs);
             gl::DeleteShader(fs);
             ShaderProgram{
