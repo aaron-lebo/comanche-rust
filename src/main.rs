@@ -4,7 +4,7 @@ extern crate glfw;
 
 use cgmath::{Matrix4, Point3, SquareMatrix, vec3};
 use gl::types::*;
-use self::glfw::Context;
+use glfw::{Action, Context, Key};
 use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_void;
@@ -117,6 +117,23 @@ fn setup_gl() -> (ShaderProgram, GLuint) {
     }
 }
 
+fn process_events(win: &mut glfw::Window, evts: &std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>) {
+    for (_, evt) in glfw::flush_messages(&evts) {
+        match evt {
+            glfw::WindowEvent::FramebufferSize(w, h) => unsafe { gl::Viewport(0, 0, w, h) },
+            glfw::WindowEvent::Key(key, _, action, _) => match (key, action) {
+                (Key::Escape, Action::Press) => win.set_should_close(true),
+                (Key::W, Action::Press) => println!("w"),
+                (Key::A, Action::Press) => println!("a"),
+                (Key::S, Action::Press) => println!("s"),
+                (Key::D, Action::Press) => println!("d"),
+                _ => (),
+            },
+            _ => (),
+        }
+    }
+}
+
 fn render(program: &ShaderProgram, vao: GLuint) {
     unsafe {
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -140,22 +157,14 @@ pub fn main() {
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
 
     let (mut win, evts) = glfw.create_window(WIDTH, HEIGHT, TITLE, glfw::WindowMode::Windowed).unwrap();
-    win.set_key_polling(true);
     win.make_current();
     win.set_framebuffer_size_polling(true);
+    win.set_key_polling(true);
 
     gl::load_with(|sym| win.get_proc_address(sym) as *const _);
     let (program, vao) = setup_gl();
     while !win.should_close() {
-        use self::glfw::{Key, Action};
-        for (_, evt) in glfw::flush_messages(&evts) {
-            match evt {
-                glfw::WindowEvent::FramebufferSize(w, h) => unsafe { gl::Viewport(0, 0, w, h) },
-                glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => win.set_should_close(true),
-                _ => (),
-            }
-        }
-
+        process_events(&mut win, &evts);
         render(&program, vao);
         win.swap_buffers();
         glfw.poll_events();
