@@ -69,7 +69,8 @@ unsafe fn compile_shader(kind: GLenum, src: &str) -> GLuint {
     shader
 }
 
-fn setup_gl() -> (ShaderProgram, GLuint) {
+fn setup_gl(win: &mut glfw::Window) -> (ShaderProgram, GLuint) {
+    gl::load_with(|sym| win.get_proc_address(sym) as *const _);
     unsafe {
         gl::ClearColor(0.0, 0.0, 0.0, 1.0);
         gl::Viewport(0, 0, WIDTH as i32, HEIGHT as i32);
@@ -155,14 +156,11 @@ pub fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-
     let (mut win, evts) = glfw.create_window(WIDTH, HEIGHT, TITLE, glfw::WindowMode::Windowed).unwrap();
     win.make_current();
     win.set_framebuffer_size_polling(true);
     win.set_key_polling(true);
-
-    gl::load_with(|sym| win.get_proc_address(sym) as *const _);
-    let (program, vao) = setup_gl();
+    let (program, vao) = setup_gl(&mut win);
     while !win.should_close() {
         process_events(&mut win, &evts);
         render(&program, vao);
