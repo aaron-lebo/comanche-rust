@@ -65,8 +65,8 @@ fn setup_gl() -> (GLuint, GLuint) {
     unsafe {
         gl::ClearColor(0.0, 0.0, 0.0, 1.0);
         gl::Viewport(0, 0, WIDTH as i32, HEIGHT as i32);
-        //gl::Enable(gl::CULL_FACE);
-        //gl::Enable(gl::DEPTH_TEST);
+        gl::Enable(gl::CULL_FACE);
+        gl::Enable(gl::DEPTH_TEST);
         gl::LogicOp(gl::INVERT);
 
         let pro = gl::CreateProgram();
@@ -103,7 +103,7 @@ fn setup_gl() -> (GLuint, GLuint) {
 
 fn render(program: GLuint, vao: GLuint) {
     unsafe {
-        gl::Clear(gl::COLOR_BUFFER_BIT);
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
         gl::UseProgram(program);
         let mvp_loc = gl::GetUniformLocation(program, CString::new("mvp").unwrap().as_ptr());
