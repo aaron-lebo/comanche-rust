@@ -40,6 +40,8 @@ struct ShaderProgram {
     mvp: GLint,
 }
 
+struct Camera {}
+
 unsafe fn check_status(obj: GLuint, param: GLenum) {
     let mut ok = gl::FALSE as GLint;
     let get_info = match param {
@@ -69,7 +71,7 @@ unsafe fn compile_shader(kind: GLenum, src: &str) -> GLuint {
     shader
 }
 
-fn setup_gl(win: &mut glfw::Window) -> (ShaderProgram, GLuint) {
+fn setup_gl(win: &mut glfw::Window) -> (GLuint, ShaderProgram) {
     gl::load_with(|sym| win.get_proc_address(sym) as *const _);
     unsafe {
         gl::ClearColor(0.0, 0.0, 0.0, 1.0);
@@ -78,21 +80,6 @@ fn setup_gl(win: &mut glfw::Window) -> (ShaderProgram, GLuint) {
         gl::Enable(gl::DEPTH_TEST);
         gl::LogicOp(gl::INVERT);
 
-        let program = {
-            let p = gl::CreateProgram();
-            let vs = compile_shader(gl::VERTEX_SHADER, include_str!("block_vert.glsl"));
-            let fs = compile_shader(gl::FRAGMENT_SHADER, include_str!("block_frag.glsl"));
-            gl::AttachShader(p, vs);
-            gl::AttachShader(p, fs);
-            gl::LinkProgram(p);
-            check_status(p, gl::LINK_STATUS);
-            gl::DeleteShader(vs);
-            gl::DeleteShader(fs);
-            ShaderProgram{
-                program: p,
-                mvp: gl::GetUniformLocation(p, CString::new("mvp").unwrap().as_ptr()),
-            }
-        };
         let vao = {
             let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
             gl::GenVertexArrays(1, &mut vao);
@@ -114,11 +101,29 @@ fn setup_gl(win: &mut glfw::Window) -> (ShaderProgram, GLuint) {
             gl::BindVertexArray(0);
             vao
         };
-        (program, vao)
+        let program = {
+            let p = gl::CreateProgram();
+            let vs = compile_shader(gl::VERTEX_SHADER, include_str!("block_vert.glsl"));
+            let fs = compile_shader(gl::FRAGMENT_SHADER, include_str!("block_frag.glsl"));
+            gl::AttachShader(p, vs);
+            gl::AttachShader(p, fs);
+            gl::LinkProgram(p);
+            check_status(p, gl::LINK_STATUS);
+            gl::DeleteShader(vs);
+            gl::DeleteShader(fs);
+            ShaderProgram{
+                program: p,
+                mvp: gl::GetUniformLocation(p, CString::new("mvp").unwrap().as_ptr()),
+            }
+        };
+        (vao, program,)
     }
 }
 
-fn process_events(win: &mut glfw::Window, evts: &std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>) {
+fn process_events(
+    evts: &std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
+    win: &mut glfw::Window,
+    camera: &mut Camera) {
     for (_, evt) in glfw::flush_messages(&evts) {
         match evt {
             glfw::WindowEvent::FramebufferSize(w, h) => unsafe { gl::Viewport(0, 0, w, h) },
@@ -135,7 +140,7 @@ fn process_events(win: &mut glfw::Window, evts: &std::sync::mpsc::Receiver<(f64,
     }
 }
 
-fn render(program: &ShaderProgram, vao: GLuint) {
+fn render(vao: GLuint, program: &ShaderProgram, camera: &mut Camera) {
     unsafe {
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
@@ -160,10 +165,11 @@ pub fn main() {
     win.make_current();
     win.set_framebuffer_size_polling(true);
     win.set_key_polling(true);
-    let (program, vao) = setup_gl(&mut win);
+    let (vao, program) = setup_gl(&mut win);
+    let mut camera = Camera{};
     while !win.should_close() {
-        process_events(&mut win, &evts);
-        render(&program, vao);
+        process_events(&evts, &mut win, &mut camera);
+        render(vao, &program, &mut camera);
         win.swap_buffers();
         glfw.poll_events();
     }
