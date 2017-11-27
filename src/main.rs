@@ -2,9 +2,10 @@ extern crate cgmath;
 extern crate gl;
 extern crate glfw;
 
-use cgmath::{Matrix4, Point3, SquareMatrix, vec3};
+use cgmath::{EuclideanSpace, Matrix4, Point3, SquareMatrix, vec3};
 use gl::types::*;
 use glfw::{Action, Context, Key};
+use std::collections::HashSet;
 use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_void;
@@ -40,7 +41,11 @@ struct ShaderProgram {
     mvp: GLint,
 }
 
-struct Camera {}
+struct Camera {
+    position: Point3<f32>,
+    direction: Point3<f32>,
+    keys: HashSet<Key>
+}
 
 unsafe fn check_status(obj: GLuint, param: GLenum) {
     let mut ok = gl::FALSE as GLint;
@@ -116,28 +121,35 @@ fn setup_gl(win: &mut glfw::Window) -> (GLuint, ShaderProgram) {
                 mvp: gl::GetUniformLocation(p, CString::new("mvp").unwrap().as_ptr()),
             }
         };
-        (vao, program,)
+        (vao, program)
     }
 }
 
 fn process_events(
-    evts: &std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
+    events: &std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
     win: &mut glfw::Window,
-    camera: &mut Camera) {
-    for (_, evt) in glfw::flush_messages(&evts) {
+    camera: &mut Camera,
+) {
+    for (_, evt) in glfw::flush_messages(&events) {
         match evt {
             glfw::WindowEvent::FramebufferSize(w, h) => unsafe { gl::Viewport(0, 0, w, h) },
             glfw::WindowEvent::Key(key, _, action, _) => match (key, action) {
                 (Key::Escape, Action::Press) => win.set_should_close(true),
-                (Key::W, Action::Press) => println!("w"),
-                (Key::A, Action::Press) => println!("a"),
-                (Key::S, Action::Press) => println!("s"),
-                (Key::D, Action::Press) => println!("d"),
+                (key, Action::Press) => { camera.keys.insert(key); },
+                (mut key, Action::Release) => { camera.keys.remove(&mut key); },
                 _ => (),
             },
             _ => (),
         }
     }
+
+    const SPEED: f32 = 0.5;
+    if let Some(_) = camera.keys.get(&Key::W) { camera.position += (camera.direction * SPEED).to_vec() }
+    if let Some(_) = camera.keys.get(&Key::A) { }
+    if let Some(_) = camera.keys.get(&Key::S) {
+        camera.position = Point3::from_vec(camera.position - camera.direction * SPEED)
+    }
+    if let Some(_) = camera.keys.get(&Key::D) { }
 }
 
 fn render(vao: GLuint, program: &ShaderProgram, camera: &mut Camera) {
@@ -146,7 +158,7 @@ fn render(vao: GLuint, program: &ShaderProgram, camera: &mut Camera) {
 
         gl::UseProgram(program.program);
         let projection = cgmath::perspective(cgmath::Deg(45.0), 4.0 / 3.0, 0.1, 100.0);
-        let view = Matrix4::look_at(Point3::new(4.0, 3.0, -3.0), Point3::new(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0));
+        let view = Matrix4::look_at(camera.position, camera.direction, vec3(0.0, 1.0, 0.0));
         let model = Matrix4::identity();
         let mvp = projection * view * model;
         gl::UniformMatrix4fv(program.mvp, 1, gl::FALSE, &mvp[0][0]);
@@ -166,7 +178,11 @@ pub fn main() {
     win.set_framebuffer_size_polling(true);
     win.set_key_polling(true);
     let (vao, program) = setup_gl(&mut win);
-    let mut camera = Camera{};
+    let mut camera = Camera{
+        position: Point3::new(0.0, 0.0, 5.0),
+        direction: Point3::new(0.0, 0.0, -1.0),
+        keys: HashSet::new(),
+    };
     while !win.should_close() {
         process_events(&evts, &mut win, &mut camera);
         render(vao, &program, &mut camera);
