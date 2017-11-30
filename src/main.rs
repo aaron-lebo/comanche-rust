@@ -18,22 +18,22 @@ const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
 
 const VERTS: [f32; 24] = [
-    -0.5,  0.5,  0.5,
     -0.5, -0.5,  0.5,
      0.5, -0.5,  0.5,
      0.5,  0.5,  0.5,
-    -0.5,  0.5, -0.5,
+    -0.5,  0.5,  0.5,
     -0.5, -0.5, -0.5,
      0.5, -0.5, -0.5,
      0.5,  0.5, -0.5,
+    -0.5,  0.5, -0.5,
 ];
 const INDICES: [i32; 36] = [
     0, 1, 2, 2, 3, 0, // +z
-    4, 5, 6, 6, 7, 4, // -z
-    4, 0, 3, 3, 7, 4, // +y
-    5, 1, 2, 2, 6, 5, // -y
-    3, 2, 6, 6, 7, 3, // +x
-    0, 1, 5, 5, 4, 0, // -x
+    5, 6, 7, 7, 4, 5, // -z
+    3, 2, 6, 6, 7, 3, // +y
+    4, 5, 1, 1, 0, 4, // -y
+    1, 5, 6, 6, 2, 1, // +x
+    4, 0, 3, 3, 7, 4, // -x
 ];
 
 struct ShaderProgram {
@@ -88,14 +88,14 @@ fn setup_gl(win: &mut glfw::Window) -> (GLuint, ShaderProgram) {
         let vao = {
             let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
             gl::GenVertexArrays(1, &mut vao);
-            gl::GenBuffers(1, &mut vbo);
-            gl::GenBuffers(1, &mut ebo);
             gl::BindVertexArray(vao);
+            gl::GenBuffers(1, &mut vbo);
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
             gl::BufferData(gl::ARRAY_BUFFER,
                            (VERTS.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                            &VERTS[0] as *const f32 as *const c_void,
                            gl::STATIC_DRAW);
+            gl::GenBuffers(1, &mut ebo);
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
             gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
                            (INDICES.len() * mem::size_of::<GLint>()) as GLsizeiptr,
