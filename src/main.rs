@@ -36,7 +36,6 @@ const INDICES: [i32; 36] = [
     0, 1, 5, 5, 4, 0, // -x
 ];
 
-
 struct ShaderProgram {
     program: GLuint,
     mvp: GLint,
