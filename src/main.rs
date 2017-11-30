@@ -144,11 +144,12 @@ fn process_events(
     }
 
     const SPEED: f32 = 0.5;
+    let pos = camera.direction * SPEED;
     let up = vec3(0.0, 1.0, 0.0);
-    if let Some(_) = camera.keys.get(&Key::W) { camera.position += camera.direction * SPEED }
-    if let Some(_) = camera.keys.get(&Key::A) { camera.position -= camera.direction.cross(up).normalize() * SPEED }
-    if let Some(_) = camera.keys.get(&Key::S) { camera.position -= camera.direction * SPEED }
-    if let Some(_) = camera.keys.get(&Key::D) { camera.position += camera.direction.cross(up).normalize() * SPEED }
+    if let Some(_) = camera.keys.get(&Key::W) { camera.position += pos }
+    if let Some(_) = camera.keys.get(&Key::A) { camera.position -= pos.cross(up).normalize() }
+    if let Some(_) = camera.keys.get(&Key::S) { camera.position -= pos }
+    if let Some(_) = camera.keys.get(&Key::D) { camera.position += pos.cross(up).normalize() }
 }
 
 fn render(vao: GLuint, program: &ShaderProgram, camera: &mut Camera) {
