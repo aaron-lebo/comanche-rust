@@ -2,7 +2,7 @@ extern crate cgmath;
 extern crate gl;
 extern crate glfw;
 
-use cgmath::{EuclideanSpace, Matrix4, Point3, SquareMatrix, vec3};
+use cgmath::{EuclideanSpace, InnerSpace, Matrix4, Point3, SquareMatrix, Vector3, vec3};
 use gl::types::*;
 use glfw::{Action, Context, Key};
 use std::collections::HashSet;
@@ -36,14 +36,15 @@ const INDICES: [i32; 36] = [
     0, 1, 5, 5, 4, 0, // -x
 ];
 
+
 struct ShaderProgram {
     program: GLuint,
     mvp: GLint,
 }
 
 struct Camera {
-    position: Point3<f32>,
-    direction: Point3<f32>,
+    position: Vector3<f32>,
+    direction: Vector3<f32>,
     keys: HashSet<Key>
 }
 
@@ -144,12 +145,11 @@ fn process_events(
     }
 
     const SPEED: f32 = 0.5;
-    if let Some(_) = camera.keys.get(&Key::W) { camera.position += (camera.direction * SPEED).to_vec() }
-    if let Some(_) = camera.keys.get(&Key::A) { }
-    if let Some(_) = camera.keys.get(&Key::S) {
-        camera.position = Point3::from_vec(camera.position - camera.direction * SPEED)
-    }
-    if let Some(_) = camera.keys.get(&Key::D) { }
+    let up = vec3(0.0, 1.0, 0.0);
+    if let Some(_) = camera.keys.get(&Key::W) { camera.position += camera.direction * SPEED }
+    if let Some(_) = camera.keys.get(&Key::A) { camera.position -= camera.direction.cross(up).normalize() * SPEED }
+    if let Some(_) = camera.keys.get(&Key::S) { camera.position -= camera.direction * SPEED }
+    if let Some(_) = camera.keys.get(&Key::D) { camera.position += camera.direction.cross(up).normalize() * SPEED }
 }
 
 fn render(vao: GLuint, program: &ShaderProgram, camera: &mut Camera) {
@@ -158,7 +158,10 @@ fn render(vao: GLuint, program: &ShaderProgram, camera: &mut Camera) {
 
         gl::UseProgram(program.program);
         let projection = cgmath::perspective(cgmath::Deg(45.0), 4.0 / 3.0, 0.1, 100.0);
-        let view = Matrix4::look_at(camera.position, camera.direction, vec3(0.0, 1.0, 0.0));
+        let view = Matrix4::look_at(
+            Point3::from_vec(camera.position),
+            Point3::from_vec(camera.position + camera.direction),
+            vec3(0.0, 1.0, 0.0));
         let model = Matrix4::identity();
         let mvp = projection * view * model;
         gl::UniformMatrix4fv(program.mvp, 1, gl::FALSE, &mvp[0][0]);
@@ -179,8 +182,8 @@ pub fn main() {
     win.set_key_polling(true);
     let (vao, program) = setup_gl(&mut win);
     let mut camera = Camera{
-        position: Point3::new(0.0, 0.0, 5.0),
-        direction: Point3::new(0.0, 0.0, -1.0),
+        position: vec3(0.0, 0.0, 5.0),
+        direction: vec3(0.0, 0.0, -1.0),
         keys: HashSet::new(),
     };
     while !win.should_close() {
