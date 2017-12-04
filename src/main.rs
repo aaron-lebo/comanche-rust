@@ -2,7 +2,7 @@ extern crate cgmath;
 extern crate gl;
 extern crate glfw;
 
-use cgmath::{vec3, Deg, Euler, Matrix4, Quaternion, Vector3};
+use cgmath::{vec3, Deg, Matrix4, Point3, Quaternion, Vector3};
 use cgmath::prelude::*;
 use gl::types::*;
 use glfw::{Action, Context, Key, WindowEvent};
@@ -45,8 +45,12 @@ struct ShaderProgram {
 struct Camera {
     direction: Vector3<f32>,
     position: Vector3<f32>,
-    pitch: f64,
+    up: Vector3<f32>,
+    mouse_position: (f64, f64),
+    //mouse_delta: cgmath::Vector2<f64>,
+    //quaternion: Quaternion<f32>,
     yaw: f64,
+    pitch: f64,
     keys: HashSet<Key>,
 }
 
@@ -136,6 +140,13 @@ fn process_events(
     for (_, evt) in glfw::flush_messages(&events) {
         match evt {
             WindowEvent::FramebufferSize(w, h) => unsafe { gl::Viewport(0, 0, w, h) },
+            WindowEvent::CursorPos(x, y) => {
+                const SENSITIVITY: f64 = 0.1;
+                let (x0, y0) = camera.mouse_position;
+                camera.yaw += SENSITIVITY * (x - x0);
+                camera.pitch -= SENSITIVITY * (y - y0);
+                camera.mouse_position = (x, y);
+            }
             WindowEvent::Key(key, _, action, _) => match (key, action) {
                 (Key::Escape, Action::Press) => win.set_should_close(true),
                 (key, Action::Press) => { camera.keys.insert(key); },
@@ -146,34 +157,35 @@ fn process_events(
         }
     }
 
+    let (yaw, pitch) = (Deg(camera.yaw as f32), Deg(camera.pitch as f32));
+    camera.direction = vec3(
+        yaw.cos() * pitch.cos(),
+        pitch.sin(),
+        yaw.sin() * pitch.cos(),
+    ).normalize();
+
     const SPEED: f32 = 0.5;
     let pos = camera.direction * SPEED;
-    let up = vec3(0.0, 1.0, 0.0);
     if let Some(_) = camera.keys.get(&Key::W) { camera.position += pos }
-    if let Some(_) = camera.keys.get(&Key::A) { camera.position -= pos.cross(up).normalize() }
+    if let Some(_) = camera.keys.get(&Key::A) { camera.position -= pos.cross(camera.up).normalize() }
     if let Some(_) = camera.keys.get(&Key::S) { camera.position -= pos }
-    if let Some(_) = camera.keys.get(&Key::D) { camera.position += pos.cross(up).normalize() }
+    if let Some(_) = camera.keys.get(&Key::D) { camera.position += pos.cross(camera.up).normalize() }
 }
 
-fn render(win: &mut glfw::Window, vao: GLuint, program: &ShaderProgram, camera: &mut Camera) {
+fn render(vao: GLuint, program: &ShaderProgram, camera: &mut Camera) {
     unsafe {
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
         gl::UseProgram(program.program);
-        let projection = cgmath::perspective(cgmath::Deg(45.0), 4.0 / 3.0, 0.1, 100.0);
+        let projection = cgmath::perspective(cgmath::Deg(45.0), 4.0 / 3.0, 0.01, 1000.0);
         let view = {
-            let (x, y) = win.get_cursor_pos();
-            let (w, h) = ((WIDTH / 2) as f64, (HEIGHT / 2) as f64);
-            win.set_cursor_pos(w, h);
-            const SENSITIVITY: f64 = 0.05;
-            camera.yaw += SENSITIVITY * (w - x);
-            camera.pitch += SENSITIVITY * (h - y);
-            let rotation = Quaternion::from(Euler {
-                x: Deg(-camera.pitch as f32),
-                y: Deg(-camera.yaw as f32),
-                z: Deg(0.0),
-            });
-            Matrix4::from(rotation) * Matrix4::from_translation(-camera.position)
+            //camera.quaternion = (Quaternion::from_sv(1.0, camera.mouse_delta) * camera.quaternion).normalize();
+            //camera.mouse_delta = vec3(0.0, 0.0, 0.0);
+            //Matrix4::from(camera.quaternion) * Matrix4::from_translation(-camera.position);
+            Matrix4::look_at(
+                Point3::from_vec(camera.position),
+                Point3::from_vec(camera.position + camera.direction),
+                camera.up)
         };
         let model = Matrix4::identity();
         let mvp = projection * view * model;
@@ -191,20 +203,26 @@ pub fn main() {
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
     let (mut win, evts) = glfw.create_window(WIDTH, HEIGHT, TITLE, glfw::WindowMode::Windowed).unwrap();
     win.make_current();
+    win.set_cursor_mode(glfw::CursorMode::Disabled);
+    win.set_cursor_pos(0.0, 0.0);
     win.set_cursor_pos_polling(true);
     win.set_framebuffer_size_polling(true);
     win.set_key_polling(true);
     let (vao, program) = setup_gl(&mut win);
     let mut camera = Camera {
-        position: vec3(0.0, 0.0, 5.0),
+        position: vec3(0.0, 0.0, 10.0),
         direction: vec3(0.0, 0.0, -1.0),
+        up: vec3(0.0, 1.0, 0.0),
         pitch: 0.0,
-        yaw: 0.0,
+        yaw: -90.0,
+        mouse_position: (0.0, 0.0),
+        //mouse_delta: vec2(0.0, 0.0),
+        //quaternion: Quaternion::one(),
         keys: HashSet::new(),
     };
     while !win.should_close() {
         process_events(&evts, &mut win, &mut camera);
-        render(&mut win, vao, &program, &mut camera);
+        render(vao, &program, &mut camera);
         win.swap_buffers();
         glfw.poll_events();
     }
