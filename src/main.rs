@@ -46,11 +46,10 @@ struct Camera {
     direction: Vector3<f32>,
     position: Vector3<f32>,
     up: Vector3<f32>,
-    mouse_position: (f64, f64),
-    //mouse_delta: cgmath::Vector2<f64>,
-    //quaternion: Quaternion<f32>,
     yaw: f64,
     pitch: f64,
+    //quaternion: Quaternion<f32>,
+    mouse_position: (f64, f64),
     keys: HashSet<Key>,
 }
 
@@ -204,7 +203,6 @@ pub fn main() {
     let (mut win, evts) = glfw.create_window(WIDTH, HEIGHT, TITLE, glfw::WindowMode::Windowed).unwrap();
     win.make_current();
     win.set_cursor_mode(glfw::CursorMode::Disabled);
-    win.set_cursor_pos(0.0, 0.0);
     win.set_cursor_pos_polling(true);
     win.set_framebuffer_size_polling(true);
     win.set_key_polling(true);
@@ -215,7 +213,7 @@ pub fn main() {
         up: vec3(0.0, 1.0, 0.0),
         pitch: 0.0,
         yaw: -90.0,
-        mouse_position: (0.0, 0.0),
+        mouse_position: win.get_cursor_pos(),
         //mouse_delta: vec2(0.0, 0.0),
         //quaternion: Quaternion::one(),
         keys: HashSet::new(),
